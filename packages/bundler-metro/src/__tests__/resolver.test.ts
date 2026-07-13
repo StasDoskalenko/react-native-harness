@@ -1,9 +1,15 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Config as HarnessConfig } from '@react-native-harness/config';
 import { createHarnessEntryPointResolver } from '../resolvers/resolver.js';
+
+const require = createRequire(import.meta.url);
+const harnessEntryPointPath = require.resolve(
+  '@react-native-harness/runtime/entry-point',
+);
 
 const tempDirs: string[] = [];
 
@@ -60,5 +66,128 @@ describe('createHarnessEntryPointResolver', () => {
         filePath: expect.stringMatching(/entry-point(\.[cm]?[jt]sx?)?$/),
       }),
     );
+  });
+
+  it('hijacks entry points requested relative to a monorepo server root', () => {
+    const monorepoRoot = createProjectRoot();
+    const projectRoot = path.join(monorepoRoot, 'apps', 'mobile');
+    const entryPointPath = path.join(
+      projectRoot,
+      'node_modules',
+      'expo-router',
+      'entry.js',
+    );
+
+    fs.mkdirSync(path.dirname(entryPointPath), { recursive: true });
+    fs.writeFileSync(entryPointPath, 'export {};');
+
+    vi.spyOn(process, 'cwd').mockReturnValue(projectRoot);
+
+    const resolver = createHarnessEntryPointResolver({
+      entryPoint: 'expo-router/entry',
+    } as HarnessConfig);
+
+    expect(
+      resolver(
+        {
+          originModulePath: monorepoRoot,
+        } as never,
+        './apps/mobile/node_modules/expo-router/entry',
+        'ios',
+      ),
+    ).toEqual({
+      type: 'sourceFile',
+      filePath: harnessEntryPointPath,
+    });
+  });
+
+  it('hijacks the Expo virtual entry point', () => {
+    const projectRoot = createProjectRoot();
+    const entryPointPath = path.join(
+      projectRoot,
+      'node_modules',
+      'expo-router',
+      'entry.js',
+    );
+
+    fs.mkdirSync(path.dirname(entryPointPath), { recursive: true });
+    fs.writeFileSync(entryPointPath, 'export {};');
+
+    vi.spyOn(process, 'cwd').mockReturnValue(projectRoot);
+
+    const resolver = createHarnessEntryPointResolver({
+      entryPoint: 'expo-router/entry',
+    } as HarnessConfig);
+
+    expect(
+      resolver(
+        {
+          originModulePath: projectRoot,
+        } as never,
+        './.expo/.virtual-metro-entry',
+        'ios',
+      ),
+    ).toEqual({
+      type: 'sourceFile',
+      filePath: harnessEntryPointPath,
+    });
+  });
+
+  it('ignores requests that do not originate from the project root or its ancestors', () => {
+    const projectRoot = createProjectRoot();
+    const entryPointPath = path.join(
+      projectRoot,
+      'node_modules',
+      'expo-router',
+      'entry.js',
+    );
+
+    fs.mkdirSync(path.dirname(entryPointPath), { recursive: true });
+    fs.writeFileSync(entryPointPath, 'export {};');
+
+    vi.spyOn(process, 'cwd').mockReturnValue(projectRoot);
+
+    const resolver = createHarnessEntryPointResolver({
+      entryPoint: 'expo-router/entry',
+    } as HarnessConfig);
+
+    expect(
+      resolver(
+        {
+          originModulePath: path.join(projectRoot, 'src'),
+        } as never,
+        '../node_modules/expo-router/entry',
+        'ios',
+      ),
+    ).toBeNull();
+  });
+
+  it('ignores non-entry modules requested from the project root', () => {
+    const projectRoot = createProjectRoot();
+    const entryPointPath = path.join(
+      projectRoot,
+      'node_modules',
+      'expo-router',
+      'entry.js',
+    );
+
+    fs.mkdirSync(path.dirname(entryPointPath), { recursive: true });
+    fs.writeFileSync(entryPointPath, 'export {};');
+
+    vi.spyOn(process, 'cwd').mockReturnValue(projectRoot);
+
+    const resolver = createHarnessEntryPointResolver({
+      entryPoint: 'expo-router/entry',
+    } as HarnessConfig);
+
+    expect(
+      resolver(
+        {
+          originModulePath: projectRoot,
+        } as never,
+        './index',
+        'ios',
+      ),
+    ).toBeNull();
   });
 });
