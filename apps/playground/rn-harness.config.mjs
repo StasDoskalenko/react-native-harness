@@ -121,7 +121,6 @@ export default {
   detectNativeCrashes: true,
   resetEnvironmentBetweenTestFiles: 'runtime',
   unstable__enableMetroCache: true,
-  unstable__skipAlreadyIncludedModules: false,
   forwardClientLogs: true,
   disableViewFlattening: true,
 };

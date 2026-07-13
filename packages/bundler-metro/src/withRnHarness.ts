@@ -1,7 +1,10 @@
 import { createRequire } from 'node:module';
 import os from 'node:os';
 import type { MetroConfig } from 'metro-config';
-import { getConfig } from '@react-native-harness/config';
+import {
+  getConfig,
+  resolveSkipAlreadyIncludedModules,
+} from '@react-native-harness/config';
 import { logger } from '@react-native-harness/tools';
 import { getHarnessBabelTransformerPath } from './babel-transformer.js';
 import { getHarnessSerializer } from './getHarnessSerializer.js';
@@ -113,12 +116,17 @@ export const withRnHarness = <T extends MetroConfig>(
         getHarnessCacheStores();
     }
 
-    if (harnessConfig.unstable__skipAlreadyIncludedModules) {
+    if (resolveSkipAlreadyIncludedModules(harnessConfig)) {
       (
         patchedConfig.serializer as NonNullable<
           NotReadOnly<MetroConfig['serializer']>
         >
-      ).customSerializer = getHarnessSerializer();
+      ).customSerializer = getHarnessSerializer({
+        harnessEntryPointPath: require.resolve(
+          '@react-native-harness/runtime/entry-point'
+        ),
+        customSerializer: metroConfig.serializer?.customSerializer ?? undefined,
+      });
     }
 
     return patchedConfig as T;
