@@ -4,10 +4,19 @@
   "include": [],
   "references": [
     {
-      "path": "../config"
+      "path": "../jest"
+    },
+    {
+      "path": "../bundler-metro"
     },
     {
       "path": "../platform-android"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../cache"
     },
     {
       "path": "./tsconfig.lib.json"
