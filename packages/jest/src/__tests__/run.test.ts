@@ -71,4 +71,43 @@ describe('runHarnessTestFile', () => {
       expect.objectContaining({ testTimeout: 15000 }),
     );
   });
+
+  it('reports declaration-time and runtime skips to Jest as pending', async () => {
+    const session = createSession(15000);
+    vi.mocked(session.runTestFile).mockResolvedValue({
+      ...createHarnessResult(),
+      tests: [
+        {
+          name: 'passes',
+          status: 'passed',
+          duration: 1,
+        },
+        {
+          name: 'declaration skip',
+          status: 'skipped',
+          duration: 0,
+          declarationMode: 'skip',
+        },
+        {
+          name: 'runtime skip',
+          status: 'skipped',
+          duration: 1,
+        },
+      ],
+    });
+
+    const { jestResult } = await runHarnessTestFile({
+      testPath: '/project/example.harness.ts',
+      session,
+      globalConfig: createGlobalConfig(),
+      projectConfig: createProjectConfig(),
+    });
+
+    expect(jestResult.numPendingTests).toBe(2);
+    expect(jestResult.testResults).toEqual([
+      expect.objectContaining({ title: 'passes', status: 'passed' }),
+      expect.objectContaining({ title: 'declaration skip', status: 'pending' }),
+      expect.objectContaining({ title: 'runtime skip', status: 'pending' }),
+    ]);
+  });
 });
