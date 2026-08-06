@@ -8,7 +8,7 @@ import {
 import {
   escapeRegExp,
   logger,
-  type Subprocess,
+  type OwnedProcess,
 } from '@react-native-harness/tools';
 import { createAndroidCrashReporter } from './crash-reporter.js';
 
@@ -75,19 +75,11 @@ type CreateAndroidAppSessionOptions = {
   getAppPid: () => Promise<number | null>;
   getLogcatTimestamp: () => Promise<string>;
   startLogcat: (
-    args: readonly string[],
-    options: { signal: AbortSignal }
-  ) => Subprocess;
+    args: readonly string[]
+  ) => OwnedProcess;
   getDropboxOutput?: () => Promise<string>;
   getExitInfo?: () => Promise<string>;
   crashArtifactWriter?: CrashArtifactWriter;
-  /**
-   * Session-lifetime abort signal (see HarnessPlatformInitOptions.signal).
-   * Combined with the app session's own logcatAbortController so that
-   * aborting the session stops the logcat stream even if dispose() hasn't
-   * been called yet (e.g. SIGTERM during teardown of other resources).
-   */
-  signal?: AbortSignal;
 };
 
 export const createAndroidAppSession = async ({
@@ -101,7 +93,6 @@ export const createAndroidAppSession = async ({
   getDropboxOutput,
   getExitInfo,
   crashArtifactWriter,
-  signal,
 }: CreateAndroidAppSessionOptions): Promise<AppSession> => {
   const emitter = createAppSessionEmitter();
   const logBuffer = createBoundedLogBuffer();
@@ -196,20 +187,8 @@ export const createAndroidAppSession = async ({
 
   const logcatTimestamp = await getLogcatTimestamp();
   const sessionStartedAt = Date.now();
-  const logcatAbortController = new AbortController();
-  const logcatSignal = signal
-    ? AbortSignal.any([signal, logcatAbortController.signal])
-    : logcatAbortController.signal;
-  const logcatProcess = startLogcat(getLogcatArgs(appUid, logcatTimestamp), {
-    signal: logcatSignal,
-  });
-  // Aborting is nano-spawn's own cancellation path, so the resulting
-  // SubprocessError is settled the same way regardless of which of the
-  // merged stdout/stderr iterators observes it first. Without this, killing
-  // the underlying process directly can make both iterators reject at once,
-  // and nano-spawn's internal `Promise.race` only reports one of them,
-  // leaving the other an unhandled rejection.
-  logcatProcess.catch(() => undefined);
+  const ownedLogcatProcess = startLogcat(getLogcatArgs(appUid, logcatTimestamp));
+  const logcatProcess = ownedLogcatProcess.subprocess;
   const crashReporter = createAndroidCrashReporter({
     bundleId,
     crashArtifactWriter,
@@ -255,7 +234,7 @@ export const createAndroidAppSession = async ({
     disposed = true;
     stopPolling = true;
     emitter.clear();
-    logcatAbortController.abort();
+    await ownedLogcatProcess.dispose();
     await Promise.allSettled([logTask]);
     throw error;
   }
@@ -285,8 +264,9 @@ export const createAndroidAppSession = async ({
     }
   })();
 
-  return {
-    dispose: async () => {
+  let disposePromise: Promise<void> | undefined;
+  const dispose = () =>
+    (disposePromise ??= (async () => {
       if (disposed) {
         return;
       }
@@ -303,10 +283,13 @@ export const createAndroidAppSession = async ({
       cancelPendingPollDelay();
 
       emitter.clear();
-      logcatAbortController.abort();
+      await ownedLogcatProcess.dispose();
       await stopApp();
       await Promise.allSettled([logTask, pollTask]);
-    },
+    })());
+
+  return {
+    dispose,
     getState: async () => state,
     getLogs: () => logBuffer.getLogs(),
     getCrashDetails: crashReporter.getCrashDetails,

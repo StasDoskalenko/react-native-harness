@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Subprocess } from '@react-native-harness/tools';
+import type { OwnedProcess, Subprocess } from '@react-native-harness/tools';
 import { createIosAppSession } from '../app-session.js';
 
-const createPendingLaunchProcess = (): Subprocess => {
+const createPendingLaunchProcess = (): OwnedProcess => {
   let resolveLaunch!: () => void;
   const pending = new Promise<void>((resolve) => {
     resolveLaunch = resolve;
@@ -13,7 +13,7 @@ const createPendingLaunchProcess = (): Subprocess => {
       return true;
     }),
   };
-  return Object.assign(pending, {
+  const subprocess = Object.assign(pending, {
     [Symbol.asyncIterator]: () => ({
       next: async () => {
         await pending;
@@ -22,6 +22,7 @@ const createPendingLaunchProcess = (): Subprocess => {
     }),
     nodeChildProcess: Promise.resolve(child),
   }) as unknown as Subprocess;
+  return { subprocess, dispose: async () => { child.kill(); } };
 };
 
 describe('createIosAppSession', () => {
@@ -94,52 +95,47 @@ describe('createIosAppSession', () => {
     }
   });
 
-  it('disposes the session when the session-lifetime signal aborts', async () => {
+  it('does not dispose the session before explicit disposal', async () => {
     vi.useFakeTimers();
 
     try {
       const launchProcess = createPendingLaunchProcess();
       const isAppRunning = vi.fn<() => Promise<boolean>>().mockResolvedValue(true);
       const stopApp = vi.fn(async () => undefined);
-      const controller = new AbortController();
 
       const sessionPromise = createIosAppSession({
         launch: () => launchProcess,
         stopApp,
         isAppRunning,
-        signal: controller.signal,
       });
 
       await vi.advanceTimersByTimeAsync(100);
       const session = await sessionPromise;
 
-      controller.abort();
       await vi.advanceTimersByTimeAsync(1000);
 
       await expect(session.getState()).resolves.toMatchObject({
-        status: 'disposed',
+        status: 'running',
       });
+      expect(stopApp).not.toHaveBeenCalled();
+      await session.dispose();
       expect(stopApp).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it('disposes immediately when created with an already-aborted signal', async () => {
+  it('remains running until explicitly disposed', async () => {
     vi.useFakeTimers();
 
     try {
       const launchProcess = createPendingLaunchProcess();
       const isAppRunning = vi.fn<() => Promise<boolean>>().mockResolvedValue(true);
       const stopApp = vi.fn(async () => undefined);
-      const controller = new AbortController();
-      controller.abort();
-
       const sessionPromise = createIosAppSession({
         launch: () => launchProcess,
         stopApp,
         isAppRunning,
-        signal: controller.signal,
       });
 
       await vi.advanceTimersByTimeAsync(100);
@@ -147,8 +143,10 @@ describe('createIosAppSession', () => {
       await vi.advanceTimersByTimeAsync(1000);
 
       await expect(session.getState()).resolves.toMatchObject({
-        status: 'disposed',
+        status: 'running',
       });
+      expect(stopApp).not.toHaveBeenCalled();
+      await session.dispose();
       expect(stopApp).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();

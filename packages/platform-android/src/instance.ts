@@ -297,11 +297,10 @@ export const getAndroidEmulatorPlatformInstance = async (
         stopApp: () => adb.stopApp(adbId, config.bundleId),
         getAppPid: () => adb.getAppPid(adbId, config.bundleId),
         getLogcatTimestamp: () => adb.getLogcatTimestamp(adbId),
-        startLogcat: (args, options) => adb.startLogcat(adbId, args, options),
+        startLogcat: (args) => adb.startLogcat(adbId, args),
         getDropboxOutput: () => adb.getDropboxPrint(adbId),
         getExitInfo: () => adb.getActivityExitInfo(adbId, config.bundleId),
         crashArtifactWriter: init.crashArtifactWriter,
-        signal: init.signal,
       });
     },
     dispose: async () => {
@@ -371,11 +370,10 @@ export const getAndroidPhysicalDevicePlatformInstance = async (
         stopApp: () => adb.stopApp(adbId, config.bundleId),
         getAppPid: () => adb.getAppPid(adbId, config.bundleId),
         getLogcatTimestamp: () => adb.getLogcatTimestamp(adbId),
-        startLogcat: (args, options) => adb.startLogcat(adbId, args, options),
+        startLogcat: (args) => adb.startLogcat(adbId, args),
         getDropboxOutput: () => adb.getDropboxPrint(adbId),
         getExitInfo: () => adb.getActivityExitInfo(adbId, config.bundleId),
         crashArtifactWriter: init?.crashArtifactWriter,
-        signal: init?.signal,
       });
     },
     dispose: async () => {
