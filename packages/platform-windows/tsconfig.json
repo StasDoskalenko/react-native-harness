@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "../tools"
+    },
+    {
+      "path": "../platforms"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "./tsconfig.lib.json"
+    }
+  ]
+}
