@@ -19,6 +19,15 @@ const RunnerSchema = z.object({
   runner: z.string(),
   cli: z.string().optional(),
   platformId: z.string(),
+  // Set by the platform factories (`HarnessPlatform.getResourceLockKey`) to
+  // scope the run's resource lock — e.g. per emulator/simulator/device rather
+  // than per platform. A bare `z.object()` strips unknown keys, so without
+  // this the harness always fell back to `${platformId}:${name}`.
+  getResourceLockKey: z
+    .function()
+    .args()
+    .returns(z.union([z.string(), z.promise(z.string())]))
+    .optional(),
 });
 
 type AnyHarnessPlugin = HarnessPlugin<object, unknown>;
