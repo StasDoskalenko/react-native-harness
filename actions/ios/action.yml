@@ -42,7 +42,7 @@ runs:
         INPUT_RUNNER: ${{ inputs.runner }}
         INPUT_PROJECTROOT: ${{ inputs.projectRoot }}
       run: |
-        node ${{ github.action_path }}/../shared/index.cjs
+        node "${{ github.action_path }}/../shared/index.cjs"
     - name: Detect Package Manager
       id: detect-pm
       shell: bash

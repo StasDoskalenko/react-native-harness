@@ -48,7 +48,7 @@ runs:
         INPUT_PROJECTROOT: ${{ inputs.projectRoot }}
         HARNESS_AVD_CACHING: ${{ inputs.cacheAvd }}
       run: |
-        node ${{ github.action_path }}/../shared/index.cjs
+        node "${{ github.action_path }}/../shared/index.cjs"
     - name: Verify Android config
       if: ${{ fromJson(steps.load-config.outputs.config).config.device.type == 'emulator' }}
       shell: bash
