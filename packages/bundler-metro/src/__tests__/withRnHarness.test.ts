@@ -90,8 +90,8 @@ const { resolveOutOfTreePlatforms, resolveOutOfTreeInitializeCore } = vi.hoisted
   }),
 );
 
-vi.mock('../out-of-tree-platforms.js', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../out-of-tree-platforms.js')>()),
+vi.mock('../metro-platforms.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../metro-platforms.js')>()),
   resolveOutOfTreePlatforms,
   resolveOutOfTreeInitializeCore,
 }));

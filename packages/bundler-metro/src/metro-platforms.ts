@@ -4,7 +4,7 @@ import type { CustomResolutionContext, Resolution } from 'metro-resolver';
 import type { MetroResolver } from './resolvers/types.js';
 
 const require = createRequire(import.meta.url);
-const log = logger.child('out-of-tree-platforms');
+const log = logger.child('metro-platforms');
 
 export type OutOfTreePlatform = {
   /** The platform name, e.g. `windows` — the value of Metro's `platform` param. */

@@ -3,7 +3,7 @@ import type { CustomResolutionContext } from 'metro-resolver';
 import {
   parseOutOfTreePlatforms,
   createPlatformPackageResolver,
-} from '../out-of-tree-platforms.js';
+} from '../metro-platforms.js';
 
 describe('parseOutOfTreePlatforms', () => {
   it('returns platforms that declare an npmPackageName', () => {

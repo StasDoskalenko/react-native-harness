@@ -20,7 +20,7 @@ import {
   resolveOutOfTreePlatforms,
   createPlatformPackageResolver,
   resolveOutOfTreeInitializeCore,
-} from './out-of-tree-platforms.js';
+} from './metro-platforms.js';
 import type { NotReadOnly } from './utils.js';
 
 const require = createRequire(import.meta.url);
