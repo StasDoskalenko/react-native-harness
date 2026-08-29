@@ -4899,6 +4899,7 @@ var ConfigLoadError = class extends HarnessError {
 // ../config/dist/reader.js
 var import_node_path10 = __toESM(require("path"), 1);
 var import_node_fs10 = __toESM(require("fs"), 1);
+var import_node_url = require("url");
 var import_node_module2 = require("module");
 var import_meta = {};
 var extensions = [".js", ".mjs", ".cjs", ".json"];
@@ -4910,7 +4911,7 @@ var importUp = async (dir, name) => {
       let rawConfig;
       try {
         if (ext === ".mjs") {
-          rawConfig = await import(filePathWithExt).then((module2) => module2.default);
+          rawConfig = await import((0, import_node_url.pathToFileURL)(filePathWithExt).href).then((module2) => module2.default);
         } else {
           const require2 = (0, import_node_module2.createRequire)(import_meta.url);
           rawConfig = require2(filePathWithExt);
