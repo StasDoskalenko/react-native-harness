@@ -93,11 +93,15 @@ describe('getWindowsRunner', () => {
       const getWindowsRunner = await loadRunner();
 
       const runner = await getWindowsRunner(config, harnessConfig, init());
-      const pending = runner.createAppSession();
-      // Flush the fixed number of start-poll delays without real waiting.
-      await vi.advanceTimersByTimeAsync(15 * 400);
 
-      await expect(pending).rejects.toThrow(/did not start/);
+      // Attach the rejection handler before advancing timers so the promise is
+      // never momentarily unhandled, then flush the fixed number of start-poll
+      // delays without waiting in real time.
+      const assertion = expect(runner.createAppSession()).rejects.toThrow(
+        /did not start/
+      );
+      await vi.advanceTimersByTimeAsync(15 * 400);
+      await assertion;
     } finally {
       vi.useRealTimers();
     }
