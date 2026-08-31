@@ -1,8 +1,8 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { createHarnessCache } from '@react-native-harness/cache';
 import { getConfig } from '@react-native-harness/config';
+import { getFs } from '@react-native-harness/tools/harness-context';
 import { formatMegabytes } from './format-bytes.js';
+import { resolveProjectRoot } from './workspace-root.js';
 
 /**
  * Must run AFTER the "Restore Metro cache" step and BEFORE the test run, so
@@ -13,13 +13,11 @@ import { formatMegabytes } from './format-bytes.js';
  * restored cache, defeating the "only save when content actually changed"
  * policy.
  */
-const run = async (): Promise<void> => {
+export const runSnapshotMetro = async (): Promise<void> => {
   try {
     const projectRootInput = process.env.INPUT_PROJECTROOT;
 
-    const projectRoot = projectRootInput
-      ? path.resolve(projectRootInput)
-      : process.cwd();
+    const projectRoot = resolveProjectRoot(projectRootInput);
 
     console.info(`Snapshotting Metro cache for: ${projectRoot}`);
 
@@ -54,7 +52,7 @@ const run = async (): Promise<void> => {
 
     const output = `metroSnapshot=${JSON.stringify(snapshotAfterRestore)}\n`;
 
-    fs.appendFileSync(githubOutput, output);
+    getFs().appendFileSync(githubOutput, output);
   } catch (error) {
     if (error instanceof Error) {
       console.error(error.message);
@@ -65,5 +63,3 @@ const run = async (): Promise<void> => {
     process.exit(1);
   }
 };
-
-run();
