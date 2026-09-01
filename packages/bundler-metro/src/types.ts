@@ -14,6 +14,12 @@ export type MetroOptions = {
   harnessConfig: HarnessConfig;
   websocketEndpoints?: MetroWebSocketEndpoints;
   /**
+   * `HarnessPlatform.metroConfigEnhancer` for the selected runner, if it sets
+   * one. A module specifier the bundler imports and runs against the composed
+   * Metro config so an out-of-tree platform can apply its own requirements.
+   */
+  metroConfigEnhancer?: string;
+  /**
    * Whether Jest is running in watch mode (`--watch` / `--watchAll`). Only
    * then does Metro need a file watcher; a one-shot run bundles once and
    * exits, so watching just costs a watchman subscription and the file-map

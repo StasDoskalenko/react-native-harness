@@ -18,6 +18,11 @@ const RunnerSchema = z.object({
   config: z.record(z.any()),
   runner: z.string(),
   cli: z.string().optional(),
+  // Module specifier whose default export adjusts the Metro config for this
+  // runner. Set by out-of-tree platform factories
+  // (`HarnessPlatform.metroConfigEnhancer`); imported by the bundler while
+  // composing the config.
+  metroConfigEnhancer: z.string().optional(),
   platformId: z.string(),
   // Set by the platform factories (`HarnessPlatform.getResourceLockKey`) to
   // scope the run's resource lock — e.g. per emulator/simulator/device rather

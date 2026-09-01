@@ -17,6 +17,8 @@ export type {
   CrashArtifactSource,
   CrashArtifactWriter,
   HarnessPlatform,
+  MetroConfigEnhancer,
+  MetroConfigEnhancerContext,
   HarnessPlatformInitOptions,
   HarnessPlatformRunnerFactory,
   CollectNativeCoverageOptions,

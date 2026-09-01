@@ -21,22 +21,17 @@
     "@react-native-harness/cache": "workspace:*",
     "@react-native-harness/tools": "workspace:*",
     "@react-native-harness/config": "workspace:*",
+    "@react-native-harness/platforms": "workspace:*",
     "@react-native-harness/runtime": "workspace:*",
     "connect": "^3.7.0",
     "nocache": "^4.0.0",
     "tslib": "^2.3.0"
   },
   "peerDependencies": {
-    "@react-native-community/cli-config": "*",
     "metro": "*",
     "metro-cache": "*",
     "metro-config": "*",
     "metro-resolver": "*"
-  },
-  "peerDependenciesMeta": {
-    "@react-native-community/cli-config": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@types/connect": "^3.4.38",

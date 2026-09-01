@@ -269,6 +269,9 @@ importers:
       '@react-native-harness/config':
         specifier: workspace:*
         version: link:../config
+      '@react-native-harness/platforms':
+        specifier: workspace:*
+        version: link:../platforms
       '@react-native-harness/runtime':
         specifier: workspace:*
         version: link:../runtime
@@ -530,6 +533,13 @@ importers:
       zod:
         specifier: ^3.25.67
         version: 3.25.67
+    devDependencies:
+      metro-config:
+        specifier: '*'
+        version: 0.83.3
+      metro-resolver:
+        specifier: '*'
+        version: 0.83.3
 
   packages/platforms:
     dependencies:

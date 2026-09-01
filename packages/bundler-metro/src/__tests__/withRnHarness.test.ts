@@ -81,24 +81,19 @@ vi.mock('../resolvers/resolver.js', () => ({
   getHarnessResolver: vi.fn(() => harnessResolver),
 }));
 
-const { resolveOutOfTreePlatforms, resolveOutOfTreeInitializeCore } = vi.hoisted(
-  () => ({
-    resolveOutOfTreePlatforms: vi.fn<
-      () => { name: string; npmPackageName: string }[]
-    >(() => []),
-    resolveOutOfTreeInitializeCore: vi.fn<() => string | null>(() => null),
-  }),
+/**
+ * A `metroConfigEnhancer` module as a data: URL, so `withRnHarness`'s
+ * `await import()` has something real to load without a fixture file. The
+ * enhancer stamps what it received onto the returned config.
+ */
+const enhancerModule = (body: string) =>
+  `data:text/javascript,${encodeURIComponent(body)}`;
+
+const stampingEnhancer = enhancerModule(
+  'export default (config, context) => ({ ...config, __enhanced: context.projectRoot });',
 );
 
-vi.mock('../metro-platforms.js', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../metro-platforms.js')>()),
-  resolveOutOfTreePlatforms,
-  resolveOutOfTreeInitializeCore,
-}));
-
 beforeEach(() => {
-  resolveOutOfTreePlatforms.mockReturnValue([]);
-  resolveOutOfTreeInitializeCore.mockReturnValue(null);
   harnessResolver.mockReset();
 });
 
@@ -343,7 +338,7 @@ describe('withRnHarness', () => {
     );
   });
 
-  it('leaves resolver.platforms and getModulesRunBeforeMainModule alone without an out-of-tree platform', async () => {
+  it('returns the harness-composed config untouched when no metroConfigEnhancer is set', async () => {
     const { withRnHarness } = await import('../withRnHarness.js');
 
     const runBeforeMain = vi.fn(() => ['/repo/rn/InitializeCore.js']);
@@ -355,84 +350,39 @@ describe('withRnHarness', () => {
         serializer: { getModulesRunBeforeMainModule: runBeforeMain },
       },
       true,
-    )()) as unknown as MinimalMetroConfig;
+    )()) as unknown as MinimalMetroConfig & { __enhanced?: string };
 
+    expect(config.__enhanced).toBeUndefined();
     expect(config.resolver?.platforms).toEqual(['ios', 'android']);
     expect(config.resolver?.resolveRequest).toBe(harnessResolver);
-    // Untouched: still the project's own function, not a harness wrapper.
     expect(config.serializer?.getModulesRunBeforeMainModule).toBe(runBeforeMain);
   });
 
-  it('wires an out-of-tree platform into the resolver and serializer', async () => {
-    resolveOutOfTreePlatforms.mockReturnValue([
-      { name: 'windows', npmPackageName: 'react-native-windows' },
-    ]);
-    resolveOutOfTreeInitializeCore.mockReturnValue(
-      '/repo/node_modules/react-native-windows/Libraries/Core/InitializeCore.js',
-    );
-
+  it("runs the platform's metroConfigEnhancer against the composed config", async () => {
     const { withRnHarness } = await import('../withRnHarness.js');
 
     const config = (await withRnHarness(
-      {
-        projectRoot: '/tmp/app',
-        resolver: { platforms: ['ios', 'android'] },
-        serializer: {
-          getModulesRunBeforeMainModule: () => ['/repo/rn/InitializeCore.js'],
-        },
-      },
+      { projectRoot: '/tmp/app', serializer: {} },
       true,
-    )()) as unknown as MinimalMetroConfig;
+      stampingEnhancer,
+    )()) as unknown as MinimalMetroConfig & { __enhanced?: string };
 
-    // The out-of-tree platform and `native` are added, existing entries kept.
-    expect(config.resolver?.platforms).toEqual([
-      'ios',
-      'android',
-      'windows',
-      'native',
-    ]);
-
-    // `react-native` imports for that platform now resolve against its package.
-    config.resolver?.resolveRequest?.(
-      { some: 'context' },
-      'react-native',
-      'windows',
-    );
-    expect(harnessResolver).toHaveBeenCalledWith(
-      { some: 'context' },
-      'react-native-windows',
-      'windows',
-    );
-
-    // The platform's InitializeCore is appended after the project's own.
-    expect(
-      config.serializer?.getModulesRunBeforeMainModule?.('index.js'),
-    ).toEqual([
-      '/repo/rn/InitializeCore.js',
-      '/repo/node_modules/react-native-windows/Libraries/Core/InitializeCore.js',
-    ]);
+    // The enhancer ran, and it received the project root as context.
+    expect(config.__enhanced).toBe('/tmp/app');
+    // It received the config the harness had already composed.
+    expect(config.resolver?.resolveRequest).toBe(harnessResolver);
+    expect(config.cacheVersion).toMatch(/^react-native-harness:/);
   });
 
-  it('does not add getModulesRunBeforeMainModule when the platform InitializeCore cannot be resolved', async () => {
-    resolveOutOfTreePlatforms.mockReturnValue([
-      { name: 'windows', npmPackageName: 'react-native-windows' },
-    ]);
-    resolveOutOfTreeInitializeCore.mockReturnValue(null);
-
+  it('throws when the metroConfigEnhancer module has no default export function', async () => {
     const { withRnHarness } = await import('../withRnHarness.js');
 
-    const runBeforeMain = vi.fn(() => ['/repo/rn/InitializeCore.js']);
-
-    const config = (await withRnHarness(
-      {
-        projectRoot: '/tmp/app',
-        serializer: { getModulesRunBeforeMainModule: runBeforeMain },
-      },
-      true,
-    )()) as unknown as MinimalMetroConfig;
-
-    expect(config.serializer?.getModulesRunBeforeMainModule).toBe(runBeforeMain);
-    // The resolver wiring still happens.
-    expect(config.resolver?.platforms).toContain('windows');
+    await expect(
+      withRnHarness(
+        { projectRoot: '/tmp/app', serializer: {} },
+        true,
+        enhancerModule('export const notDefault = 1;'),
+      )(),
+    ).rejects.toThrow(/no default export function/);
   });
 });

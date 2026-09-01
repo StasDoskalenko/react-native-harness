@@ -22,5 +22,13 @@
     "zod": "^3.25.67",
     "tslib": "^2.3.0"
   },
+  "peerDependencies": {
+    "metro-config": "*",
+    "metro-resolver": "*"
+  },
+  "devDependencies": {
+    "metro-config": "*",
+    "metro-resolver": "*"
+  },
   "license": "MIT"
 }

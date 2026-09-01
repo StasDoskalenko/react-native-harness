@@ -73,7 +73,7 @@ npx react-native-harness --harnessRunner windows
 
 ## Metro configuration
 
-Harness applies the same out-of-tree platform wiring that `react-native start` does (the `react-native` → `react-native-windows` resolver redirect and the Windows `InitializeCore`), so a plain `metro.config.js` works — you do **not** need to add a `windows` case to `resolver.resolveRequest` or `serializer.getModulesRunBeforeMainModule` yourself.
+`@react-native-harness/platform-windows` applies the out-of-tree platform wiring that `react-native start` gets from the community CLI plugin: the `react-native` → `react-native-windows` resolver redirect, the extra `resolver.platforms` entries, and the Windows `InitializeCore`. A plain `metro.config.js` works, and you do **not** need to add a `windows` case to `resolver.resolveRequest` or `serializer.getModulesRunBeforeMainModule` yourself.
 
 ## Requirements
 

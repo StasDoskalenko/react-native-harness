@@ -7,6 +7,7 @@ export const windowsPlatform = (
   name: config.name,
   config,
   runner: import.meta.resolve('./runner.js'),
+  metroConfigEnhancer: import.meta.resolve('./metro-config-enhancer.js'),
   platformId: 'windows',
   getResourceLockKey: () => `windows:${config.packageName}`,
 });

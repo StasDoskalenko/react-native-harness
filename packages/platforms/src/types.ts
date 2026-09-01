@@ -172,6 +172,29 @@ export type HarnessCliModule = {
   commands: HarnessCliCommand[];
 };
 
+/**
+ * Context handed to a platform's Metro config enhancer.
+ */
+export type MetroConfigEnhancerContext = {
+  /** Absolute path of the project whose Metro config is being composed. */
+  projectRoot: string;
+};
+
+/**
+ * The default export of the module a platform points `metroConfigEnhancer` at.
+ *
+ * The harness imports that module while composing the Metro config and calls
+ * the enhancer with the config it has built so far, plus the project context.
+ * The platform returns a further-adjusted config. This is where an out-of-tree
+ * platform (React Native Windows, macOS, …) applies its own Metro
+ * requirements — the `react-native` package redirect, extra `resolver.platforms`
+ * entries, its `InitializeCore` — without the bundler needing to know about it.
+ */
+export type MetroConfigEnhancer<TMetroConfig = unknown> = (
+  metroConfig: TMetroConfig,
+  context: MetroConfigEnhancerContext
+) => TMetroConfig | Promise<TMetroConfig>;
+
 export type HarnessPlatform<TConfig = Record<string, unknown>> = {
   name: string;
   config: TConfig;
@@ -179,6 +202,12 @@ export type HarnessPlatform<TConfig = Record<string, unknown>> = {
   cli?: string;
   platformId: string;
   getResourceLockKey?: () => string | Promise<string>;
+  /**
+   * Module specifier (as `import.meta.resolve('./…')` produces) whose default
+   * export is a {@link MetroConfigEnhancer}. Imported and run in the project's
+   * context while the harness composes the Metro config for this runner.
+   */
+  metroConfigEnhancer?: string;
 };
 
 export type AndroidEmulatorRunTarget = {
