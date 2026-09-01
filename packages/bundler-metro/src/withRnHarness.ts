@@ -16,6 +16,7 @@ import { getHarnessBlockList } from './metro-block-list.js';
 import { getHarnessCacheStores } from './metro-cache.js';
 import { getCappedMaxWorkers } from './metro-workers.js';
 import { getHarnessResolver } from './resolvers/resolver.js';
+import type { MetroConfigEnhancer } from '@react-native-harness/platforms';
 import type { NotReadOnly } from './utils.js';
 
 const require = createRequire(import.meta.url);
@@ -37,6 +38,7 @@ const getHarnessCacheVersion = (harnessConfig: Config): string => {
 export const withRnHarness = <T extends MetroConfig>(
   config: T | Promise<T>,
   isInvokedByHarness = false,
+  metroConfigEnhancer?: string,
 ): (() => Promise<T>) => {
   return async () => {
     if (!isInvokedByHarness) {
@@ -183,6 +185,42 @@ export const withRnHarness = <T extends MetroConfig>(
       });
     }
 
+    if (metroConfigEnhancer) {
+      return (await runMetroConfigEnhancer(
+        metroConfigEnhancer,
+        patchedConfig,
+        projectRoot
+      )) as T;
+    }
+
     return patchedConfig as T;
   };
+};
+
+/**
+ * Imports the module the selected runner's `metroConfigEnhancer` points at and
+ * runs its default export against the config the harness has composed.
+ *
+ * This is how an out-of-tree platform (React Native Windows, macOS, …) supplies
+ * its own Metro requirements. `react-native start` gets them from
+ * `@react-native/community-cli-plugin`; the harness loads Metro's config
+ * directly and leaves it to the platform package.
+ */
+const runMetroConfigEnhancer = async <T extends MetroConfig>(
+  metroConfigEnhancer: string,
+  metroConfig: T,
+  projectRoot: string
+): Promise<T> => {
+  const enhancerModule = (await import(metroConfigEnhancer)) as {
+    default?: MetroConfigEnhancer<MetroConfig>;
+  };
+  const enhance = enhancerModule.default;
+
+  if (typeof enhance !== 'function') {
+    throw new Error(
+      `metroConfigEnhancer module "${metroConfigEnhancer}" has no default export function`
+    );
+  }
+
+  return (await enhance(metroConfig, { projectRoot })) as T;
 };

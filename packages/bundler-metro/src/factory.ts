@@ -96,6 +96,7 @@ export const getMetroInstance = async (
   const {
     projectRoot,
     harnessConfig,
+    metroConfigEnhancer,
     websocketEndpoints = {},
     watchMode = false,
   } = options;
@@ -126,7 +127,11 @@ export const getMetroInstance = async (
     port: metroPort,
     projectRoot,
   });
-  const config = await withRnHarness(projectMetroConfig, true)();
+  const config = await withRnHarness(
+    projectMetroConfig,
+    true,
+    metroConfigEnhancer
+  )();
   const reporter = withReporter(config);
 
   abortSignal.throwIfAborted();

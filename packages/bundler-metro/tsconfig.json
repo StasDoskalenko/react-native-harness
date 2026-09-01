@@ -7,13 +7,16 @@
       "path": "../runtime"
     },
     {
-      "path": "../cache"
+      "path": "../platforms"
     },
     {
       "path": "../config"
     },
     {
       "path": "../tools"
+    },
+    {
+      "path": "../cache"
     },
     {
       "path": "../babel-preset"

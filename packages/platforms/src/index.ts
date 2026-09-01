@@ -19,6 +19,8 @@ export type {
   HarnessPlatform,
   HarnessPlatformInitOptions,
   HarnessPlatformRunnerFactory,
+  MetroConfigEnhancer,
+  MetroConfigEnhancerContext,
   CollectNativeCoverageOptions,
   HarnessPlatformRunner,
   RunTarget,
