@@ -310,4 +310,81 @@ describe('withRnHarness', () => {
       /^react-native-harness:\d+\.\d+\.\d+.*:my-salt$/,
     );
   });
+
+  describe('metroConfigEnhancer', () => {
+    // A `metroConfigEnhancer` module as a data: URL, so `withRnHarness`'s
+    // `await import()` has something real to load without a fixture file.
+    const enhancerRef = (body: string) => ({
+      module: `data:text/javascript,${encodeURIComponent(body)}`,
+      platformId: 'windows',
+      platformConfig: { appName: 'Demo' },
+    });
+
+    it('returns the composed config untouched when no enhancer is set', async () => {
+      const { withRnHarness } = await import('../withRnHarness.js');
+
+      const config = (await withRnHarness(
+        { projectRoot: '/tmp/app', serializer: {} },
+        true,
+      )()) as unknown as MinimalMetroConfig & { enhanced?: unknown };
+
+      expect(config.enhanced).toBeUndefined();
+      expect(config.cacheVersion).toMatch(/^react-native-harness:/);
+    });
+
+    it('runs the enhancer against the composed config, with the runner context', async () => {
+      const { withRnHarness } = await import('../withRnHarness.js');
+
+      const enhancer = enhancerRef(
+        'export default (config, context) => ({ ...config, enhanced: { projectRoot: context.projectRoot, platformId: context.platformId, platformConfig: context.platformConfig, sawCacheVersion: config.cacheVersion } });',
+      );
+
+      const config = (await withRnHarness(
+        { projectRoot: '/tmp/app', serializer: {} },
+        true,
+        enhancer,
+      )()) as unknown as MinimalMetroConfig & {
+        enhanced?: {
+          projectRoot: string;
+          platformId: string;
+          platformConfig: { appName: string };
+          sawCacheVersion: string;
+        };
+      };
+
+      expect(config.enhanced?.projectRoot).toBe('/tmp/app');
+      expect(config.enhanced?.platformId).toBe('windows');
+      expect(config.enhanced?.platformConfig).toEqual({ appName: 'Demo' });
+      // The enhancer saw the config the harness had already composed.
+      expect(config.enhanced?.sawCacheVersion).toMatch(/^react-native-harness:/);
+    });
+
+    it('awaits an async enhancer', async () => {
+      const { withRnHarness } = await import('../withRnHarness.js');
+
+      const enhancer = enhancerRef(
+        'export default async (config) => ({ ...config, enhanced: true });',
+      );
+
+      const config = (await withRnHarness(
+        { projectRoot: '/tmp/app', serializer: {} },
+        true,
+        enhancer,
+      )()) as unknown as MinimalMetroConfig & { enhanced?: boolean };
+
+      expect(config.enhanced).toBe(true);
+    });
+
+    it('throws when the enhancer module has no default export function', async () => {
+      const { withRnHarness } = await import('../withRnHarness.js');
+
+      await expect(
+        withRnHarness(
+          { projectRoot: '/tmp/app', serializer: {} },
+          true,
+          enhancerRef('export const notDefault = 1;'),
+        )(),
+      ).rejects.toThrow(/no default export function/);
+    });
+  });
 });

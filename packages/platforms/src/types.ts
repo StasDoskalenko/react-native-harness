@@ -176,6 +176,13 @@ export type HarnessPlatform<TConfig = Record<string, unknown>> = {
   cli?: string;
   platformId: string;
   getResourceLockKey?: () => string | Promise<string>;
+  /**
+   * Module specifier (as `import.meta.resolve('./…')` produces) whose default
+   * export adjusts the Metro config Harness composes for this runner. Imported
+   * and run in the project's context by the bundler; the contract that module
+   * must satisfy is `MetroConfigEnhancer` in `@react-native-harness/bundler-metro`.
+   */
+  metroConfigEnhancer?: string;
 };
 
 export type AndroidEmulatorRunTarget = {
