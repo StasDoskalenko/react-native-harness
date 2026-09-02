@@ -16,7 +16,7 @@ import { getHarnessBlockList } from './metro-block-list.js';
 import { getHarnessCacheStores } from './metro-cache.js';
 import { getCappedMaxWorkers } from './metro-workers.js';
 import { getHarnessResolver } from './resolvers/resolver.js';
-import type { MetroConfigEnhancer } from '@react-native-harness/platforms';
+import type { MetroConfigEnhancer } from './types.js';
 import type { NotReadOnly } from './utils.js';
 
 const require = createRequire(import.meta.url);
@@ -35,10 +35,20 @@ const getHarnessCacheVersion = (harnessConfig: Config): string => {
     : `react-native-harness:${version}`;
 };
 
+/**
+ * The selected runner's `metroConfigEnhancer`, resolved to a module specifier,
+ * plus the runner context the bundler forwards to it.
+ */
+export type MetroConfigEnhancerRef = {
+  module: string;
+  platformId: string;
+  platformConfig: unknown;
+};
+
 export const withRnHarness = <T extends MetroConfig>(
   config: T | Promise<T>,
   isInvokedByHarness = false,
-  metroConfigEnhancer?: string,
+  enhancer?: MetroConfigEnhancerRef,
 ): (() => Promise<T>) => {
   return async () => {
     if (!isInvokedByHarness) {
@@ -185,9 +195,9 @@ export const withRnHarness = <T extends MetroConfig>(
       });
     }
 
-    if (metroConfigEnhancer) {
+    if (enhancer) {
       return (await runMetroConfigEnhancer(
-        metroConfigEnhancer,
+        enhancer,
         patchedConfig,
         projectRoot
       )) as T;
@@ -208,20 +218,24 @@ export const withRnHarness = <T extends MetroConfig>(
  * composed config, and whatever it returns is what Metro is started with.
  */
 const runMetroConfigEnhancer = async <T extends MetroConfig>(
-  metroConfigEnhancer: string,
+  enhancer: MetroConfigEnhancerRef,
   metroConfig: T,
   projectRoot: string
 ): Promise<T> => {
-  const enhancerModule = (await import(metroConfigEnhancer)) as {
-    default?: MetroConfigEnhancer<MetroConfig>;
+  const enhancerModule = (await import(enhancer.module)) as {
+    default?: MetroConfigEnhancer;
   };
   const enhance = enhancerModule.default;
 
   if (typeof enhance !== 'function') {
     throw new Error(
-      `metroConfigEnhancer module "${metroConfigEnhancer}" has no default export function`
+      `metroConfigEnhancer module "${enhancer.module}" has no default export function`
     );
   }
 
-  return (await enhance(metroConfig, { projectRoot })) as T;
+  return (await enhance(metroConfig, {
+    projectRoot,
+    platformId: enhancer.platformId,
+    platformConfig: enhancer.platformConfig,
+  })) as T;
 };

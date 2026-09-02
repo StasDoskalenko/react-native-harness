@@ -97,6 +97,8 @@ export const getMetroInstance = async (
     projectRoot,
     harnessConfig,
     metroConfigEnhancer,
+    platformId,
+    platformConfig,
     websocketEndpoints = {},
     watchMode = false,
   } = options;
@@ -131,6 +133,12 @@ export const getMetroInstance = async (
     projectMetroConfig,
     true,
     metroConfigEnhancer
+      ? {
+          module: metroConfigEnhancer,
+          platformId: platformId ?? '',
+          platformConfig,
+        }
+      : undefined
   )();
   const reporter = withReporter(config);
 

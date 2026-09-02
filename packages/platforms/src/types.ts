@@ -169,32 +169,6 @@ export type HarnessCliModule = {
   commands: HarnessCliCommand[];
 };
 
-/**
- * Context handed to a platform's Metro config enhancer.
- */
-export type MetroConfigEnhancerContext = {
-  /** Absolute path of the project whose Metro config is being composed. */
-  projectRoot: string;
-};
-
-/**
- * The default export of the module a platform points `metroConfigEnhancer` at.
- *
- * Harness imports that module while composing the Metro config for the
- * selected runner and calls the enhancer with the config it has built so far,
- * plus the project context. The platform returns a further-adjusted config.
- *
- * This is where a platform declares the bundler configuration its own runtime
- * needs — module resolution redirects, additional `resolver.platforms`
- * entries, its own core initialization — so that wiring lives in the platform
- * package instead of in the bundler, which stays unaware of which platforms
- * exist.
- */
-export type MetroConfigEnhancer<TMetroConfig = unknown> = (
-  metroConfig: TMetroConfig,
-  context: MetroConfigEnhancerContext
-) => TMetroConfig | Promise<TMetroConfig>;
-
 export type HarnessPlatform<TConfig = Record<string, unknown>> = {
   name: string;
   config: TConfig;
@@ -204,8 +178,9 @@ export type HarnessPlatform<TConfig = Record<string, unknown>> = {
   getResourceLockKey?: () => string | Promise<string>;
   /**
    * Module specifier (as `import.meta.resolve('./…')` produces) whose default
-   * export is a {@link MetroConfigEnhancer}. Imported and run in the project's
-   * context while Harness composes the Metro config for this runner.
+   * export adjusts the Metro config Harness composes for this runner. Imported
+   * and run in the project's context by the bundler; the contract that module
+   * must satisfy is `MetroConfigEnhancer` in `@react-native-harness/bundler-metro`.
    */
   metroConfigEnhancer?: string;
 };

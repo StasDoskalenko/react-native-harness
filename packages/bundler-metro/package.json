@@ -21,7 +21,6 @@
     "@react-native-harness/cache": "workspace:*",
     "@react-native-harness/tools": "workspace:*",
     "@react-native-harness/config": "workspace:*",
-    "@react-native-harness/platforms": "workspace:*",
     "@react-native-harness/runtime": "workspace:*",
     "connect": "^3.7.0",
     "nocache": "^4.0.0",

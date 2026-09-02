@@ -624,6 +624,8 @@ export const createHarnessSession = async (
               projectRoot,
               harnessConfig: runtimeConfig,
               metroConfigEnhancer: platform.metroConfigEnhancer,
+              platformId: platform.platformId,
+              platformConfig: platform.config,
               websocketEndpoints: {
                 [HARNESS_BRIDGE_PATH]: bridge.ws as unknown as MetroWebSocketEndpoint,
               },
