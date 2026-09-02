@@ -16,7 +16,7 @@ export type MetroOptions = {
   /**
    * `HarnessPlatform.metroConfigEnhancer` for the selected runner, if it sets
    * one: a module specifier the bundler imports and runs against the composed
-   * Metro config so an out-of-tree platform can apply its own requirements.
+   * Metro config so the platform can apply the wiring its runtime needs.
    */
   metroConfigEnhancer?: string;
   /**

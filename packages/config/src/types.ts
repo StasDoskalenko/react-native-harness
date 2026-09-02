@@ -20,9 +20,7 @@ const RunnerSchema = z.object({
   cli: z.string().optional(),
   // Module specifier whose default export adjusts the Metro config for this
   // runner. Set by a platform factory (`HarnessPlatform.metroConfigEnhancer`);
-  // imported and run by the bundler while it composes the config. A bare
-  // `z.object()` strips unknown keys, so it has to be declared here to survive
-  // config parsing.
+  // imported and run by the bundler while it composes the config.
   metroConfigEnhancer: z.string().optional(),
   platformId: z.string(),
 });

@@ -199,12 +199,13 @@ export const withRnHarness = <T extends MetroConfig>(
 
 /**
  * Imports the module the selected runner's `metroConfigEnhancer` points at and
- * runs its default export against the config the harness has composed.
+ * runs its default export against the config Harness has composed.
  *
- * This is how an out-of-tree platform (React Native Windows, macOS, …) supplies
- * its own Metro requirements. `react-native start` gets them from
- * `@react-native/community-cli-plugin`; the harness loads Metro's config
- * directly and leaves it to the platform package.
+ * A platform whose runtime needs its own bundler wiring — module resolution
+ * redirects, additional `resolver.platforms` entries, its own core
+ * initialization — declares it here rather than in this package, so nothing in
+ * the bundler has to know which platforms exist. It runs last, on the fully
+ * composed config, and whatever it returns is what Metro is started with.
  */
 const runMetroConfigEnhancer = async <T extends MetroConfig>(
   metroConfigEnhancer: string,

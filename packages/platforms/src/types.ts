@@ -180,15 +180,15 @@ export type MetroConfigEnhancerContext = {
 /**
  * The default export of the module a platform points `metroConfigEnhancer` at.
  *
- * The harness imports that module while composing the Metro config for the
+ * Harness imports that module while composing the Metro config for the
  * selected runner and calls the enhancer with the config it has built so far,
  * plus the project context. The platform returns a further-adjusted config.
  *
- * This is the seam where an out-of-tree platform (React Native Windows, macOS,
- * …) applies its own Metro requirements — the `react-native` package redirect,
- * extra `resolver.platforms` entries, its `InitializeCore` — that
- * `react-native start` would get from `@react-native/community-cli-plugin`,
- * without the bundler needing to know the platform exists.
+ * This is where a platform declares the bundler configuration its own runtime
+ * needs — module resolution redirects, additional `resolver.platforms`
+ * entries, its own core initialization — so that wiring lives in the platform
+ * package instead of in the bundler, which stays unaware of which platforms
+ * exist.
  */
 export type MetroConfigEnhancer<TMetroConfig = unknown> = (
   metroConfig: TMetroConfig,
@@ -205,7 +205,7 @@ export type HarnessPlatform<TConfig = Record<string, unknown>> = {
   /**
    * Module specifier (as `import.meta.resolve('./…')` produces) whose default
    * export is a {@link MetroConfigEnhancer}. Imported and run in the project's
-   * context while the harness composes the Metro config for this runner.
+   * context while Harness composes the Metro config for this runner.
    */
   metroConfigEnhancer?: string;
 };
