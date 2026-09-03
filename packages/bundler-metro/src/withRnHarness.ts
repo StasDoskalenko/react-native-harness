@@ -21,6 +21,7 @@ import {
   createPlatformPackageResolver,
   resolveOutOfTreeInitializeCore,
 } from './metro-platforms.js';
+import type { MetroConfigEnhancer } from './types.js';
 import type { NotReadOnly } from './utils.js';
 
 const require = createRequire(import.meta.url);
@@ -39,9 +40,20 @@ const getHarnessCacheVersion = (harnessConfig: Config): string => {
     : `react-native-harness:${version}`;
 };
 
+/**
+ * The selected runner's `metroConfigEnhancer`, resolved to a module specifier,
+ * plus the runner context the bundler forwards to it.
+ */
+export type MetroConfigEnhancerRef = {
+  module: string;
+  platformId: string;
+  platformConfig: unknown;
+};
+
 export const withRnHarness = <T extends MetroConfig>(
   config: T | Promise<T>,
   isInvokedByHarness = false,
+  enhancer?: MetroConfigEnhancerRef,
 ): (() => Promise<T>) => {
   return async () => {
     if (!isInvokedByHarness) {
@@ -234,6 +246,47 @@ export const withRnHarness = <T extends MetroConfig>(
       });
     }
 
+    if (enhancer) {
+      return (await runMetroConfigEnhancer(
+        enhancer,
+        patchedConfig,
+        projectRoot
+      )) as T;
+    }
+
     return patchedConfig as T;
   };
+};
+
+/**
+ * Imports the module the selected runner's `metroConfigEnhancer` points at and
+ * runs its default export against the config Harness has composed.
+ *
+ * A platform whose runtime needs its own bundler wiring — module resolution
+ * redirects, additional `resolver.platforms` entries, its own core
+ * initialization — declares it here rather than in this package, so nothing in
+ * the bundler has to know which platforms exist. It runs last, on the fully
+ * composed config, and whatever it returns is what Metro is started with.
+ */
+const runMetroConfigEnhancer = async <T extends MetroConfig>(
+  enhancer: MetroConfigEnhancerRef,
+  metroConfig: T,
+  projectRoot: string
+): Promise<T> => {
+  const enhancerModule = (await import(enhancer.module)) as {
+    default?: MetroConfigEnhancer;
+  };
+  const enhance = enhancerModule.default;
+
+  if (typeof enhance !== 'function') {
+    throw new Error(
+      `metroConfigEnhancer module "${enhancer.module}" has no default export function`
+    );
+  }
+
+  return (await enhance(metroConfig, {
+    projectRoot,
+    platformId: enhancer.platformId,
+    platformConfig: enhancer.platformConfig,
+  })) as T;
 };
