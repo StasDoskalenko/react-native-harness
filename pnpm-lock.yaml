@@ -515,6 +515,9 @@ importers:
 
   packages/platform-windows:
     dependencies:
+      '@react-native-harness/bundler-metro':
+        specifier: workspace:*
+        version: link:../bundler-metro
       '@react-native-harness/config':
         specifier: workspace:*
         version: link:../config
@@ -530,6 +533,13 @@ importers:
       zod:
         specifier: ^3.25.67
         version: 3.25.67
+    devDependencies:
+      metro-config:
+        specifier: '*'
+        version: 0.83.3
+      metro-resolver:
+        specifier: '*'
+        version: 0.83.3
 
   packages/platforms:
     dependencies:

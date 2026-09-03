@@ -16,11 +16,6 @@ import { getHarnessBlockList } from './metro-block-list.js';
 import { getHarnessCacheStores } from './metro-cache.js';
 import { getCappedMaxWorkers } from './metro-workers.js';
 import { getHarnessResolver } from './resolvers/resolver.js';
-import {
-  resolveOutOfTreePlatforms,
-  createPlatformPackageResolver,
-  resolveOutOfTreeInitializeCore,
-} from './metro-platforms.js';
 import type { MetroConfigEnhancer } from './types.js';
 import type { NotReadOnly } from './utils.js';
 
@@ -67,31 +62,6 @@ export const withRnHarness = <T extends MetroConfig>(
     const harnessCache = createHarnessCache({ projectRoot });
 
     const harnessResolver = getHarnessResolver(metroConfig, harnessConfig);
-
-    // `react-native start` runs Metro through
-    // `@react-native/community-cli-plugin`, which teaches Metro about
-    // out-of-tree platforms (react-native-windows, react-native-macos, …):
-    // the `react-native` -> platform-package redirect, the platform's
-    // `InitializeCore`, and the extra `resolver.platforms` entries. The
-    // harness loads Metro's config directly and misses all of it. Put it
-    // back, but only when such a platform is actually registered so
-    // iOS/Android runs are byte-for-byte unchanged.
-    const outOfTreePlatforms = resolveOutOfTreePlatforms(projectRoot);
-    const hasOutOfTreePlatforms = outOfTreePlatforms.length > 0;
-
-    const resolveRequest = hasOutOfTreePlatforms
-      ? createPlatformPackageResolver(
-          Object.fromEntries(
-            outOfTreePlatforms.map((p) => [p.name, p.npmPackageName])
-          ),
-          harnessResolver
-        )
-      : harnessResolver;
-
-    const outOfTreeInitializeCore = outOfTreePlatforms
-      .map((p) => resolveOutOfTreeInitializeCore(p.npmPackageName, projectRoot))
-      .filter((entry): entry is string => entry != null);
-
     const harnessManifest = getHarnessManifest(harnessConfig);
     const harnessBabelTransformerPath =
       getHarnessBabelTransformerPath(metroConfig);
@@ -135,16 +105,6 @@ export const withRnHarness = <T extends MetroConfig>(
       },
       serializer: {
         ...metroConfig.serializer,
-        ...(outOfTreeInitializeCore.length > 0
-          ? {
-              getModulesRunBeforeMainModule: (entryPoint: string) => [
-                ...(metroConfig.serializer?.getModulesRunBeforeMainModule?.(
-                  entryPoint
-                ) ?? []),
-                ...outOfTreeInitializeCore,
-              ],
-            }
-          : {}),
         getPolyfills: (...args) => [
           ...(metroConfig.serializer?.getPolyfills?.(...args) ?? []),
           harnessManifest,
@@ -166,19 +126,8 @@ export const withRnHarness = <T extends MetroConfig>(
       resolver: {
         ...metroConfig.resolver,
         blockList: harnessBlockList,
-        resolveRequest,
+        resolveRequest: harnessResolver,
         useWatchman: process.env.RN_HARNESS_DEBUG_USE_WATCHMAN !== '0',
-        ...(hasOutOfTreePlatforms
-          ? {
-              platforms: [
-                ...new Set([
-                  ...(metroConfig.resolver?.platforms ?? ['ios', 'android']),
-                  ...outOfTreePlatforms.map((p) => p.name),
-                  'native',
-                ]),
-              ],
-            }
-          : {}),
       },
       transformer: {
         ...metroConfig.transformer,
